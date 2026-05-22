@@ -1,0 +1,40 @@
+{
+  "name": "photo-selector",
+  "version": "1.0.0",
+  "description": "摄影师智能挑图工具 - AI Photo Selector",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev:react": "vite",
+    "build:react": "vite build",
+    "dev:electron": "wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "dev": "concurrently --kill-others \"npm run dev:react\" \"npm run dev:electron\"",
+    "build": "vite build && electron-builder",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "photo",
+    "selector",
+    "photographer",
+    "AI"
+  ],
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@ant-design/icons": "^6.2.2",
+    "antd": "^6.3.7",
+    "electron": "^41.5.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "typescript": "~6.0.0",
+    "vite": "^8.0.10",
+    "wait-on": "^9.0.5"
+  }
+}
