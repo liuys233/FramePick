@@ -1,7 +1,7 @@
 {
-  "name": "photo-selector",
+  "name": "framepick",
   "version": "1.0.0",
-  "description": "摄影师智能挑图工具 - AI Photo Selector",
+  "description": "摄影师智能挑图工具 - AI Photo Frame Selector",
   "main": "electron/main.js",
   "scripts": {
     "dev:react": "vite",

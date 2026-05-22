@@ -1,4 +1,4 @@
-import { useRef, memo, useMemo } from 'react'
+import { useRef, memo } from 'react'
 import { Empty, Spin } from 'antd'
 import { CameraOutlined, SearchOutlined, AimOutlined } from '@ant-design/icons'
 import { GRADE_LABELS } from '../scoring'
@@ -138,26 +138,17 @@ function PhotoGrid({ photos, focusedIndex, onFocusChange, getDisplayGrade }: {
   const gridRef = useRef<HTMLDivElement>(null)
   const thumbnails = useThumbnails(photos)
 
-  // 避免每次 thumbnails 更新时重建所有子元素
-  const cardItems = useMemo(() => photos.map((photo, i) => ({
-    photo,
-    index: i,
-    isFocused: i === focusedIndex,
-    grade: getDisplayGrade(photo),
-    thumb: thumbnails[photo.id],
-  })), [photos, focusedIndex, getDisplayGrade, thumbnails])
-
   return (
     <div className="photo-grid" ref={gridRef}>
-      {cardItems.map(({ photo, index, isFocused, grade, thumb }) => (
+      {photos.map((photo, i) => (
         <PhotoCard
           key={photo.id}
           photo={photo}
-          index={index}
-          isFocused={isFocused}
-          grade={grade}
-          thumb={thumb}
-          onSelect={() => onFocusChange(index)}
+          index={i}
+          isFocused={i === focusedIndex}
+          grade={getDisplayGrade(photo)}
+          thumb={thumbnails[photo.id]}
+          onSelect={() => onFocusChange(i)}
         />
       ))}
     </div>

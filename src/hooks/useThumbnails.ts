@@ -67,21 +67,21 @@ export function useThumbnails(
 
     const currentIds = new Set(photos.map(p => p.id))
 
-    // 清理已消失的照片
+    // 清理已消失的照片的缩略图
     setThumbnails(prev => {
       const next: Record<string, string> = {}
       let changed = false
       for (const [id, url] of Object.entries(prev)) {
         if (currentIds.has(id)) {
           next[id] = url
-          loadedRef.current.add(id)
         } else {
           changed = true
         }
       }
-      // 清理 refs
+      // 清理 refs，确保只保留当前照片列表中的 ID
       processedRef.current = new Set([...processedRef.current].filter(id => currentIds.has(id)))
       loadingRef.current = new Set([...loadingRef.current].filter(id => currentIds.has(id)))
+      loadedRef.current = new Set([...loadedRef.current].filter(id => currentIds.has(id)))
       return changed ? next : prev
     })
 
