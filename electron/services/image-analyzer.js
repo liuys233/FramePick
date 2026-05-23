@@ -7,40 +7,7 @@ const os = require('os')
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
-const RAW_EXTS = ['.cr2', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.pef', '.srw', '.3fr', '.rwl', '.x3f', '.raw', '.cr3', '.mrf']
-
-async function cleanupTempJpeg(jpegPath, originalPath) {
-  if (jpegPath !== originalPath && jpegPath.startsWith(os.tmpdir()) && jpegPath.includes('raw_temp_')) {
-    try {
-      await fs.promises.unlink(jpegPath)
-    } catch { /* ignore cleanup errors */ }
-  }
-}
-
-async function ensureJpegBuffer(filePath) {
-  const ext = path.extname(filePath).toLowerCase()
-  if (!RAW_EXTS.includes(ext)) {
-    return filePath
-  }
-
-  const { execSync } = require('child_process')
-  const tempDir = os.tmpdir()
-  const tempJpeg = path.join(tempDir, `raw_temp_${Date.now()}.jpg`)
-
-  try {
-    execSync(`magick convert -auto-orient -resize 1200x1200 "^" -quality 85 "${filePath}" "${tempJpeg}"`, { encoding: 'utf-8', timeout: 60000 })
-    if (fs.existsSync(tempJpeg)) {
-      return tempJpeg
-    }
-    throw new Error('Conversion failed - output file not created')
-  } catch (err) {
-    console.error('RAW conversion failed:', err.message)
-    // 返回原始路径，让后续处理使用原始文件（可能会失败但至少有错误信息）
-    return filePath
-  }
-}
-
-// ── pHash (perceptual hash, 64-bit) ─────────────────────────────
+// pHash cache - no longer needs RAW conversion
 const _phashCache = new Map()
 const PHASH_CACHE_MAX = 5000
 
@@ -53,8 +20,7 @@ async function computePHash(filePath) {
     if (firstKey) _phashCache.delete(firstKey)
   }
 
-  const jpegPath = await ensureJpegBuffer(filePath)
-  const buf = await sharp(jpegPath)
+  const buf = await sharp(filePath)
     .resize(32, 32, { fit: 'fill' })
     .grayscale()
     .raw()
@@ -100,13 +66,10 @@ function hammingDist(a, b) {
 
 // ── 曝光检测 ────────────────────────────────────────────────────
 async function analyzeExposure(filePath) {
-  const jpegPath = await ensureJpegBuffer(filePath)
-  const { data, info } = await sharp(jpegPath)
+  const { data, info } = await sharp(filePath)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
-
-  await cleanupTempJpeg(jpegPath, filePath)
 
   const px = new Uint8Array(data.buffer)
   const ch = info.channels
@@ -149,8 +112,7 @@ async function analyzeExposure(filePath) {
 
 // ── 清晰度检测 (Laplacian variance) ─────────────────────────────
 async function analyzeSharpness(filePath) {
-  const jpegPath = await ensureJpegBuffer(filePath)
-  const { data, info } = await sharp(jpegPath)
+  const { data, info } = await sharp(filePath)
     .resize(640, undefined, { fit: 'inside', withoutEnlargement: true })
     .grayscale()
     .raw()
@@ -197,14 +159,12 @@ async function analyzeSharpness(filePath) {
   else score = 98
   score = clamp(Math.round(score), 0, 100)
 
-  await cleanupTempJpeg(jpegPath, filePath)
   return { score, laplacianVariance: Math.round(variance * 100) / 100 }
 }
 
 // ── 色彩丰富度检测 ──────────────────────────────────────────────
 async function analyzeColor(filePath) {
-  const jpegPath = await ensureJpegBuffer(filePath)
-  const { data, info } = await sharp(jpegPath)
+  const { data, info } = await sharp(filePath)
     .resize(320, undefined, { fit: 'inside' })
     .raw()
     .toBuffer({ resolveWithObject: true })
@@ -236,7 +196,6 @@ async function analyzeColor(filePath) {
   else if (diversity < 0.05) score -= 10
   score = clamp(Math.round(score), 0, 100)
 
-  await cleanupTempJpeg(jpegPath, filePath)
   return {
     score,
     avgSaturation: +(avgSat * 100).toFixed(1),
@@ -247,8 +206,7 @@ async function analyzeColor(filePath) {
 // ── 人眼/人脸检测 (肤色启发式) ─────────────────────────────────
 async function analyzeEye(filePath) {
   try {
-    const jpegPath = await ensureJpegBuffer(filePath)
-    const { data, info } = await sharp(jpegPath)
+    const { data, info } = await sharp(filePath)
       .resize(160, undefined, { fit: 'inside' })
       .raw()
       .toBuffer({ resolveWithObject: true })
