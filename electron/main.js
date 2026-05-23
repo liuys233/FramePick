@@ -151,14 +151,29 @@ if (!fs.existsSync(THUMB_DIR)) fs.mkdirSync(THUMB_DIR, { recursive: true })
     const ext = path.extname(filePath).toLowerCase()
     const isWeb = WEB_EXTS.includes(ext)
 
+    const RAW_EXTS = ['.cr2', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.pef', '.srw', '.3fr', '.rwl', '.x3f', '.raw', '.cr3', '.mrf']
+    const isRaw = RAW_EXTS.includes(ext)
+
     if (isWeb) {
       const stat = fs.statSync(filePath)
       console.log('[Main] web image ext', ext, 'size', stat.size)
-      // Bug 12 fix: small web images must go through Sharp too if not JPEG,
-      // otherwise data URI MIME type (image/jpeg) won't match actual content
       if (stat.size < 3 * 1024 * 1024 && ext === '.jpg') {
         fs.copyFileSync(filePath, cachedPath)
         return cachedPath
+      }
+    }
+
+    // RAW 文件使用 ImageMagick 处理
+    if (isRaw) {
+      console.log('[Main] processing RAW through ImageMagick:', filePath)
+      try {
+        const { execSync } = require('child_process')
+        const magickPath = 'magick'
+        execSync(`"${magickPath}" convert -auto-orient -resize 400x300 "^" -gravity center -extent 400x300 -quality 75 "${filePath}" "${cachedPath}"`, { encoding: 'utf-8', timeout: 30000 })
+        console.log('[Main] generated RAW thumbnail', cachedPath)
+        return cachedPath
+      } catch (magickErr) {
+        console.error('[Main] ImageMagick failed, trying Sharp:', magickErr.message)
       }
     }
 
