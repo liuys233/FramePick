@@ -1,10 +1,10 @@
 import type { SceneConfig, GradeRule, GradeKey, DetailScores, AnalysisResult, CustomRules } from './types'
 
 export const SCENES: Record<string, SceneConfig> = {
-  street: { id: 'street', name: 'street', icon: '🏙️', label: '街拍', weights: { eye: 0.15, exposure: 0.25, similarity: 0.15, sharpness: 0.15, color: 0.30 } },
-  portrait: { id: 'portrait', name: 'portrait', icon: '👤', label: '人像', weights: { eye: 0.40, exposure: 0.20, similarity: 0.15, sharpness: 0.10, color: 0.15 } },
-  landscape: { id: 'landscape', name: 'landscape', icon: '🌄', label: '风光', weights: { eye: 0.05, exposure: 0.35, similarity: 0.15, sharpness: 0.25, color: 0.20 } },
-  stillLife: { id: 'stillLife', name: 'stillLife', icon: '🏺', label: '静物', weights: { eye: 0.05, exposure: 0.25, similarity: 0.15, sharpness: 0.25, color: 0.30 } },
+  street: { id: 'street', name: 'street', icon: '🏙️', label: '街拍', weights: { eye: 0.10, exposure: 0.25, similarity: 0.20, sharpness: 0.15, color: 0.30 } },
+  portrait: { id: 'portrait', name: 'portrait', icon: '👤', label: '人像', weights: { eye: 0.45, exposure: 0.15, similarity: 0.10, sharpness: 0.10, color: 0.20 } },
+  landscape: { id: 'landscape', name: 'landscape', icon: '🌄', label: '风光', weights: { eye: 0.05, exposure: 0.30, similarity: 0.20, sharpness: 0.25, color: 0.20 } },
+  stillLife: { id: 'stillLife', name: 'stillLife', icon: '🏺', label: '静物', weights: { eye: 0.05, exposure: 0.20, similarity: 0.15, sharpness: 0.25, color: 0.35 } },
 }
 
 export const DEFAULT_GRADES: GradeRule[] = [
