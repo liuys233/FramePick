@@ -43,6 +43,19 @@ export function computeGrade(
       }
     : baseWeights
 
+  const weightSum = w.eye + w.exposure + w.sharpness + w.color + w.similarity
+  if (Math.abs(weightSum - 1.0) > 0.01) {
+    console.warn(`[scoring] 权重总和不等于 1.0: ${weightSum.toFixed(2)}，已自动归一化`)
+    const normalizedW = {
+      eye: w.eye / weightSum,
+      exposure: w.exposure / weightSum,
+      sharpness: w.sharpness / weightSum,
+      color: w.color / weightSum,
+      similarity: w.similarity / weightSum,
+    }
+    Object.assign(w, normalizedW)
+  }
+
   const scores: DetailScores = {
     eye: analysis.eye?.score ?? 100,
     exposure: analysis.exposure?.score ?? 50,

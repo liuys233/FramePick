@@ -173,7 +173,8 @@ if (!fs.existsSync(THUMB_DIR)) fs.mkdirSync(THUMB_DIR, { recursive: true })
         console.log('[Main] generated RAW thumbnail', cachedPath)
         return cachedPath
       } catch (magickErr) {
-        console.error('[Main] ImageMagick failed, trying Sharp:', magickErr.message)
+        console.error('[Main] ImageMagick failed:', magickErr.message)
+        return { error: 'RAW 文件处理失败: ' + magickErr.message }
       }
     }
 
@@ -224,6 +225,7 @@ ipcMain.handle('export:copyFiles', async (_event, { files, destDir, naming, form
   let successCount = 0
   let failCount = 0
   const errors = []
+  const overwritten = []
 
   for (let i = 0; i < files.length; i++) {
     try {
@@ -239,6 +241,12 @@ ipcMain.handle('export:copyFiles', async (_event, { files, destDir, naming, form
         newName = `${file.rating || 0}_${file.name.replace(srcExt, newExt)}`
       }
       const destPath = path.join(destDir, newName)
+      
+      // 检测文件是否已存在
+      if (fs.existsSync(destPath)) {
+        overwritten.push(newName)
+      }
+      
       await fs.promises.copyFile(file.path, destPath)
       successCount++
     } catch (err) {
@@ -247,7 +255,7 @@ ipcMain.handle('export:copyFiles', async (_event, { files, destDir, naming, form
     }
   }
 
-  return { total: files.length, successCount, failCount, errors }
+  return { total: files.length, successCount, failCount, errors, overwritten }
 })
 
 ipcMain.handle('export:gradeFolders', async (_event, { files, destDir, grades, naming }) => {

@@ -45,13 +45,15 @@ export function useWorkflow() {
       setAnalyzeProgress(progress)
       
       // 计算 ETA
-      if (progress.current > 0 && progress.total > 0) {
-        if (!startTimeRef.current) {
+      if (progress.current > 3 && progress.total > 0) {
+        if (!startTimeRef.current || lastProgressRef.current < progress.current - 1) {
           startTimeRef.current = Date.now()
-          lastProgressRef.current = 0
+          lastProgressRef.current = progress.current
         }
         
         const elapsed = Date.now() - startTimeRef.current
+        if (elapsed < 500) return // 等待至少 500ms 再计算
+        
         const rate = progress.current / elapsed
         const remaining = progress.total - progress.current
         
