@@ -36,8 +36,8 @@ function createWindow() {
 
 const SUPPORTED_EXTS = [
   '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
-  '.tiff', '.tif', '.raw', '.cr2', '.nef', '.arw',
-  '.dng', '.orf', '.rw2',
+  '.tiff', '.tif', '.raw', '.cr2', '.cr3', '.nef', '.arw',
+  '.dng', '.orf', '.rw2', '.raf', '.pef', '.srw', '.3fr', '.rwl', '.x3f', '.mrf',
 ]
 
 const WEB_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']

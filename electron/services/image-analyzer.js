@@ -9,6 +9,14 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
 
 const RAW_EXTS = ['.cr2', '.nef', '.arw', '.dng', '.orf', '.rw2', '.raf', '.pef', '.srw', '.3fr', '.rwl', '.x3f', '.raw', '.cr3', '.mrf']
 
+async function cleanupTempJpeg(jpegPath, originalPath) {
+  if (jpegPath !== originalPath && jpegPath.startsWith(os.tmpdir()) && jpegPath.includes('raw_temp_')) {
+    try {
+      await fs.promises.unlink(jpegPath)
+    } catch { /* ignore cleanup errors */ }
+  }
+}
+
 async function ensureJpegBuffer(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   if (!RAW_EXTS.includes(ext)) {
@@ -21,10 +29,14 @@ async function ensureJpegBuffer(filePath) {
 
   try {
     execSync(`magick convert -auto-orient -resize 1200x1200 "^" -quality 85 "${filePath}" "${tempJpeg}"`, { encoding: 'utf-8', timeout: 60000 })
-    return tempJpeg
+    if (fs.existsSync(tempJpeg)) {
+      return tempJpeg
+    }
+    throw new Error('Conversion failed - output file not created')
   } catch (err) {
     console.error('RAW conversion failed:', err.message)
-    throw err
+    // 返回原始路径，让后续处理使用原始文件（可能会失败但至少有错误信息）
+    return filePath
   }
 }
 
@@ -94,12 +106,7 @@ async function analyzeExposure(filePath) {
     .raw()
     .toBuffer({ resolveWithObject: true })
 
-  // Clean up temporary JPEG if it was created from RAW
-  if (jpegPath !== filePath && jpegPath.startsWith(os.tmpdir())) {
-    try {
-      await fs.promises.unlink(jpegPath)
-    } catch { /* ignore cleanup errors */ }
-  }
+  await cleanupTempJpeg(jpegPath, filePath)
 
   const px = new Uint8Array(data.buffer)
   const ch = info.channels
@@ -190,6 +197,7 @@ async function analyzeSharpness(filePath) {
   else score = 98
   score = clamp(Math.round(score), 0, 100)
 
+  await cleanupTempJpeg(jpegPath, filePath)
   return { score, laplacianVariance: Math.round(variance * 100) / 100 }
 }
 
@@ -228,6 +236,7 @@ async function analyzeColor(filePath) {
   else if (diversity < 0.05) score -= 10
   score = clamp(Math.round(score), 0, 100)
 
+  await cleanupTempJpeg(jpegPath, filePath)
   return {
     score,
     avgSaturation: +(avgSat * 100).toFixed(1),
