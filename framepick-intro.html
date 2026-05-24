@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FramePick 摄影选片助手</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --card-bg: #14141c;
+      --text: #f5f5f7;
+      --text-dim: #888;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .slider {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .slide.prev {
+      transform: translateX(-100px);
+    }
+
+    /* Background effects */
+    .bg-gradient {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 30px;
+      letter-spacing: -0.02em;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: var(--text-dim);
+    }
+
+    p {
+      font-size: 1.25rem;
+      line-height: 1.7;
+      color: var(--text-dim);
+      max-width: 600px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px;
+      margin: 20px;
+      max-width: 700px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 900px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px var(--accent-glow);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .feature-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      background: var(--gradient);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 30px;
+    }
+
+    /* Stats */
+    .stats {
+      display: flex;
+      gap: 60px;
+      margin-top: 40px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 3rem;
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .nav-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .nav-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .nav-dot:hover {
+      background: rgba(255,255,255,0.4);
+    }
+
+    /* Controls */
+    .controls {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .btn {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--accent);
+    }
+
+    /* Progress bar */
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--gradient);
+      width: 0%;
+      transition: width 0.3s ease;
+      z-index: 100;
+    }
+
+    /* Workflow diagram */
+    .workflow {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .workflow-step {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px 30px;
+      text-align: center;
+    }
+
+    .workflow-arrow {
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    /* Title slide specific */
+    .title-slide h1 {
+      font-size: 5rem;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .title-slide p {
+      font-size: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1 { font-size: 2.5rem; }
+      h2 { font-size: 1.8rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .stats { gap: 30px; }
+      .workflow { flex-direction: column; }
+      .slide { padding: 30px; }
+    }
+
+    /* Animation classes */
+    .fade-in {
+      animation: fadeIn 0.6s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stagger-1 { animation-delay: 0.1s; opacity: 0; }
+    .stagger-2 { animation-delay: 0.2s; opacity: 0; }
+    .stagger-3 { animation-delay: 0.3s; opacity: 0; }
+    .stagger-4 { animation-delay: 0.4s; opacity: 0; }
+    .stagger-5 { animation-delay: 0.5s; opacity: 0; }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <div class="slider" id="slider">
+    <!-- Slide 1: Title -->
+    <div class="slide active title-slide" data-index="0">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">AI 摄影选片工具</span>
+      <h1>FramePick</h1>
+      <p>摄影师智能挑图助手 · 从大量照片中快速筛选优质作品</p>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value">5</div>
+          <div class="stat-label">智能维度</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">4</div>
+          <div class="stat-label">场景模式</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">10x</div>
+          <div class="stat-label">效率提升</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide" data-index="1">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">问题</span>
+      <h2>摄影师每天面对的挑战</h2>
+      <div class="card">
+        <p>一次婚礼拍摄可能有 2000+ 张照片<br><br>
+        手动筛选耗时耗力，容易眼花缭乱<br><br>
+        难以客观判断照片质量</p>
+      </div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide" data-index="2">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">解决方案</span>
+      <h2>AI 智能分级</h2>
+      <p style="margin-bottom: 30px">自动分析照片的 5 个维度，一键分类</p>
+      <div class="workflow">
+        <div class="workflow-step">📁 导入照片</div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">🤖 AI 分析</div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">⭐ 智能分级</div>
+        <span class="workflow-arrow">→</span>
+        <div class="workflow-step">📤 导出结果</div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Features -->
+    <div class="slide" data-index="3">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">核心功能</span>
+      <h2>5 维智能评分</h2>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon">☀️</div>
+          <div class="feature-title">曝光检测</div>
+          <div class="feature-desc">直方图分析 + 对比度检测</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <div class="feature-title">清晰度</div>
+          <div class="feature-desc">Laplacian 方差算法</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <div class="feature-title">色彩分析</div>
+          <div class="feature-desc">饱和度 + 多样性</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👤</div>
+          <div class="feature-title">人像检测</div>
+          <div class="feature-desc">4种肤色检测算法</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👁️</div>
+          <div class="feature-title">人眼检测</div>
+          <div class="feature-desc">睁眼/闭眼自动识别</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <div class="feature-title">去重</div>
+          <div class="feature-desc">pHash 相似度计算</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Scenes -->
+    <div class="slide" data-index="4">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">场景模式</span>
+      <h2>4 种摄影场景</h2>
+      <p style="margin-bottom: 30px">不同场景，自动调整评分权重</p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon">👤</div>
+          <div class="feature-title">人像</div>
+          <div class="feature-desc">人像 45% · 色彩 20%</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏙️</div>
+          <div class="feature-title">街拍</div>
+          <div class="feature-desc">色彩 30% · 曝光 25%</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌄</div>
+          <div class="feature-title">风光</div>
+          <div class="feature-desc">曝光 30% · 清晰度 25%</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏺</div>
+          <div class="feature-title">静物</div>
+          <div class="feature-desc">色彩 35% · 清晰度 25%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Result -->
+    <div class="slide" data-index="5">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">分级结果</span>
+      <h2>自动分类</h2>
+      <div class="card">
+        <div style="display: flex; justify-content: space-around; text-align: center;">
+          <div>
+            <div style="font-size: 2rem; margin-bottom: 10px;">⭐</div>
+            <div style="font-weight: 600;">精选</div>
+            <div style="color: var(--text-dim); font-size: 0.9rem;">80-100分</div>
+          </div>
+          <div>
+            <div style="font-size: 2rem; margin-bottom: 10px;">📌</div>
+            <div style="font-weight: 600;">备选</div>
+            <div style="color: var(--text-dim); font-size: 0.9rem;">50-79分</div>
+          </div>
+          <div>
+            <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+            <div style="font-weight: 600;">不推荐</div>
+            <div style="color: var(--text-dim); font-size: 0.9rem;">0-49分</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Tech Stack -->
+    <div class="slide" data-index="6">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">技术栈</span>
+      <h2>技术架构</h2>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚛️</div>
+          <div class="feature-title">React 19</div>
+          <div class="feature-desc">前端框架</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <div class="feature-title">Electron 41</div>
+          <div class="feature-desc">桌面应用</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔷</div>
+          <div class="feature-title">TypeScript</div>
+          <div class="feature-desc">类型安全</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🖼️</div>
+          <div class="feature-title">Sharp</div>
+          <div class="feature-desc">图像处理</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <div class="feature-title">face-api.js</div>
+          <div class="feature-desc">人脸检测</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">Vite</div>
+          <div class="feature-desc">构建工具</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: CTA -->
+    <div class="slide" data-index="7">
+      <div class="bg-gradient"></div>
+      <div class="bg-grid"></div>
+      <span class="badge">开始使用</span>
+      <h1>立即体验</h1>
+      <div class="card" style="text-align: center;">
+        <p style="margin-bottom: 20px;">双击 start.bat 即可启动</p>
+        <p style="font-size: 1rem;">或运行 <code style="background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 6px;">npm run dev</code></p>
+      </div>
+      <p style="margin-top: 40px; font-size: 1rem;">Made with ❤️ for photographers</p>
+    </div>
+  </div>
+
+  <!-- Navigation dots -->
+  <div class="nav" id="nav"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" onclick="prevSlide()">← Prev</button>
+    <button class="btn" onclick="nextSlide()">Next →</button>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const nav = document.getElementById('nav');
+    const progress = document.getElementById('progress');
+    let currentSlide = 0;
+
+    // Create nav dots
+    slides.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+      dot.onclick = () => goToSlide(i);
+      nav.appendChild(dot);
+    });
+
+    function updateSlide() {
+      slides.forEach((slide, i) => {
+        slide.classList.remove('active', 'prev');
+        if (i === currentSlide) {
+          slide.classList.add('active');
+        } else if (i < currentSlide) {
+          slide.classList.add('prev');
+        }
+      });
+
+      document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide);
+      });
+
+      progress.style.width = ((currentSlide + 1) / slides.length * 100) + '%';
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateSlide();
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      }
+    });
+
+    // Touch navigation
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX - touchEndX;
+      if (Math.abs(diff) > 50) {
+        if (diff > 0) nextSlide();
+        else prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>
