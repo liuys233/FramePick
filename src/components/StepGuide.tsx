@@ -95,7 +95,7 @@ export default function StepGuide() {
   return (
     <div className="step-guide-root">
       <Card className="step-guide-card">
-        <Title level={4} style={{ textAlign: 'center', margin: 0 }}>摄影选片助手</Title>
+        <Title level={4} style={{ textAlign: 'center', margin: 0 }}>帧选-一个面向摄影师的智能挑图工具</Title>
 
         <div className="step-progress">
           {STEPS.map((s, i) => {
@@ -123,7 +123,7 @@ export default function StepGuide() {
               <CameraOutlined className="step-icon" />
               <Title level={3}>开始导入照片</Title>
               <Text type="secondary">
-                支持 JPG、PNG、WebP、TIFF 以及 RAW（CR2/NEF/ARW/DNG）等常见摄影格式
+                支持 JPG，PNG，TIFF（后续将支持 RAW 文件）
               </Text>
               <Button type="primary" size="large" icon={<CloudUploadOutlined />} onClick={w.onStartImport}>
                 导入照片

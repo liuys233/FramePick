@@ -24,7 +24,7 @@ export default function TopNav({
 
   return (
     <header className="topnav">
-      <Text strong style={{ color: '#fff', fontSize: 15, marginRight: 12 }}>摄影选片助手</Text>
+      <Text strong style={{ color: '#fff', fontSize: 15, marginRight: 12 }}>帧选-智能挑图</Text>
       <Divider type="vertical" style={{ height: 24, margin: '0 8px' }} />
 
       <Button
