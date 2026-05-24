@@ -1,10 +1,22 @@
 declare module 'face-api.js' {
-  export const nets: any
+  export const nets: {
+    tinyFaceDetector: {
+      loadFromUri: (uri: string) => Promise<void>
+    }
+    faceLandmark68Net: {
+      loadFromUri: (uri: string) => Promise<void>
+    }
+  }
 
   export function detectSingleFace(
-    imageElement: HTMLImageElement | HTMLVideoElement | string,
-    options?: any
+    input: HTMLImageElement | HTMLVideoElement | string
   ): {
-    withFaceLandmarks: () => Promise<any>
+    withFaceLandmarks: () => Promise<{
+      detection: { score: number }
+      landmarks: {
+        getLeftEye(): Array<{ x: number; y: number }>
+        getRightEye(): Array<{ x: number; y: number }>
+      }
+    }>
   }
 }
