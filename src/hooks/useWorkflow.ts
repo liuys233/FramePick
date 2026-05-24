@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { PhotoInfo, SceneId, CustomRules, AnalysisResult } from '../types'
 import { computeGrade } from '../scoring'
 import { useAntdToast } from './useToast'
+import { detectEyeState } from '../services/eyeDetector'
 
 type WorkflowStep = 'import' | 'scene' | 'grade' | 'complete'
 
@@ -11,10 +12,15 @@ const isElectron = typeof window !== 'undefined' && !!window.electronAPI
 const mockAnalyzePhoto = async (_path: string): Promise<AnalysisResult> => {
   await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200))
   return {
-    eye: { score: 50 + Math.random() * 50 },
-    exposure: { score: 40 + Math.random() * 60 },
-    sharpness: { score: 30 + Math.random() * 70 },
-    color: { score: 45 + Math.random() * 55 },
+    eye: { score: 50 + Math.random() * 50, skinRatio: 5 },
+    exposure: { 
+      score: 40 + Math.random() * 60, 
+      avgLuminance: 128, 
+      overexposedRatio: 5, 
+      underexposedRatio: 5 
+    },
+    sharpness: { score: 30 + Math.random() * 70, laplacianVariance: 100 },
+    color: { score: 45 + Math.random() * 55, avgSaturation: 30, colorDiversity: 20 },
     similarity: 60 + Math.random() * 40,
   }
 }
@@ -106,10 +112,10 @@ export function useWorkflow() {
       if (!p.detailScores) return { ...p, scene }
       const { totalScore, grade } = computeGrade(
         {
-          eye: { score: p.detailScores.eye },
-          exposure: { score: p.detailScores.exposure },
-          sharpness: { score: p.detailScores.sharpness },
-          color: { score: p.detailScores.color },
+          eye: { score: p.detailScores.eye, skinRatio: 0 },
+          exposure: { score: p.detailScores.exposure, avgLuminance: 128, overexposedRatio: 0, underexposedRatio: 0 },
+          sharpness: { score: p.detailScores.sharpness, laplacianVariance: 50 },
+          color: { score: p.detailScores.color, avgSaturation: 20, colorDiversity: 10 },
           similarity: p.detailScores.uniqueness,
         },
         scene,
@@ -154,6 +160,27 @@ export function useWorkflow() {
         })
       }
 
+      if (activeScene === 'portrait') {
+        toast.info('正在检测人眼状态...')
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i]
+          try {
+            const thumbPath = photo.thumbnail || photo.path
+            const eyeResult = await detectEyeState(thumbPath)
+            const existing = analysisByPath.get(photo.path)
+            if (existing) {
+              analysisByPath.set(photo.path, {
+                ...existing,
+                eyeDetection: eyeResult,
+              })
+            }
+          } catch (err) {
+            console.warn(`[EyeDetection] Failed for ${photo.path}:`, err)
+          }
+          setAnalyzeProgress({ current: i + 1, total: photos.length })
+        }
+      }
+
       setPhotos(prev => prev.map(photo => {
         const detail = analysisByPath.get(photo.path)
         if (!detail) return photo
@@ -180,10 +207,10 @@ export function useWorkflow() {
         if (!p.detailScores) return p
         const { totalScore, grade, detailScores } = computeGrade(
           {
-            eye: { score: p.detailScores.eye },
-            exposure: { score: p.detailScores.exposure },
-            sharpness: { score: p.detailScores.sharpness },
-            color: { score: p.detailScores.color },
+            eye: { score: p.detailScores.eye, skinRatio: 0 },
+            exposure: { score: p.detailScores.exposure, avgLuminance: 128, overexposedRatio: 0, underexposedRatio: 0 },
+            sharpness: { score: p.detailScores.sharpness, laplacianVariance: 50 },
+            color: { score: p.detailScores.color, avgSaturation: 20, colorDiversity: 10 },
             similarity: p.detailScores.uniqueness,
           },
           activeScene,

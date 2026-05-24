@@ -64,15 +64,34 @@ export function computeGrade(
     uniqueness: analysis.similarity ?? 100,
   }
 
+  let eyePenalty = 0
+  let eyeBonus = 0
+  
+  if (sceneId === 'portrait' && analysis.eyeDetection) {
+    const { hasFace, openEyeCount, eyeStatus } = analysis.eyeDetection
+    
+    if (hasFace) {
+      if (eyeStatus === 'closed') {
+        eyePenalty = 15
+      } else if (openEyeCount === 2) {
+        eyeBonus = 10
+      } else if (openEyeCount === 1) {
+        eyeBonus = 5
+      }
+    }
+  }
+
   const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)))
 
-  const total = clamp(
+  let total = clamp(
     scores.eye * w.eye +
     scores.exposure * w.exposure +
     scores.sharpness * w.sharpness +
     scores.color * w.color +
     scores.uniqueness * w.similarity
   )
+
+  total = clamp(total - eyePenalty + eyeBonus)
 
   const grades = customRules?.grades || DEFAULT_GRADES
   let grade: GradeKey = 'reject'

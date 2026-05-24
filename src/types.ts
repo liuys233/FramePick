@@ -51,11 +51,19 @@ export interface CustomRules {
 }
 
 export interface AnalysisResult {
-  eye: { score: number }
-  exposure: { score: number }
-  sharpness: { score: number }
-  color: { score: number }
+  eye?: { score: number; skinRatio: number; details?: { rgb: number; hsv: number; ycrcb: number } }
+  exposure?: { score: number; avgLuminance: number; overexposedRatio: number; underexposedRatio: number; contrastScore?: number }
+  sharpness?: { score: number; laplacianVariance: number }
+  color?: { score: number; avgSaturation: number; colorDiversity: number }
   similarity?: number
+  eyeDetection?: {
+    hasFace: boolean
+    faceCount: number
+    openEyeCount: number
+    closedEyeCount: number
+    eyeStatus: 'open' | 'closed' | 'unknown'
+    confidence: number
+  }
 }
 
 export type GradeFilter = GradeKey | 'ungraded' | null
