@@ -226,9 +226,22 @@ body {
   overflow-y: auto;
   padding: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
   align-content: start;
+  scrollbar-gutter: stable;
+}
+
+@media (min-width: 1200px) {
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
 }
 
 .photo-card {
@@ -239,10 +252,16 @@ body {
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition);
-  content-visibility: auto;  /* 浏览器自动跳过视口外渲染 */
-  contain-intrinsic-size: 0 180px;  /* 估算卡片高度，优化滚动性能 */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
+  min-height: 120px;
 }
-.photo-card:hover { border-color: #555; }
+
+.photo-card:hover {
+  border-color: #555;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 .photo-card.focused { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .photo-card.grade-selected { border-color: var(--success); }
 .photo-card.grade-alternative { border-color: var(--warning); }
@@ -254,12 +273,19 @@ body {
   overflow: hidden;
   background: #111;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .photo-img-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  transition: transform 0.2s ease;
+}
+.photo-card:hover .photo-img-wrap img {
+  transform: scale(1.02);
 }
 .photo-placeholder {
   width: 100%;
