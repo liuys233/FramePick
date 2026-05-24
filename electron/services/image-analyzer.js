@@ -352,7 +352,7 @@ async function analyzeEye(filePath) {
     const combinedScore = skinScore * 0.7 + Math.min(faceScore, skinScore) * 0.3
     
     // 阈值判断
-    let score: number
+    let score
     if (combinedScore > 0.12) {
       score = 90 // 明确检测到人脸/肤色
     } else if (combinedScore > 0.06) {

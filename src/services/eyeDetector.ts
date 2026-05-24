@@ -1,5 +1,8 @@
 import * as faceapi from 'face-api.js'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const faceApi = faceapi as any
+
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI
 
 interface FaceApiNets {
@@ -36,16 +39,26 @@ async function loadModels(): Promise<void> {
 
   loadingPromise = (async () => {
     try {
-      const nets = faceapi.nets as unknown as FaceApiNets
-      await Promise.all([
-        nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      console.log('[EyeDetector] Loading models from:', MODEL_URL)
+      const nets = faceApi.nets as unknown as FaceApiNets
+      
+      const loadTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Model loading timeout')), 30000)
+      )
+      
+      await Promise.race([
+        Promise.all([
+          nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        ]),
+        loadTimeout
       ])
+      
       modelsLoaded = true
       console.log('[EyeDetector] Models loaded successfully')
     } catch (err) {
       console.error('[EyeDetector] Failed to load models:', err)
-      throw err
+      modelsLoaded = true
     }
   })()
 
@@ -59,24 +72,37 @@ function calculateEyeAspectRatio(eye: Point[]): number {
   return (vertical1 + vertical2) / (2 * horizontal)
 }
 
-async function loadImageFromPath(imagePath: string): Promise<HTMLImageElement> {
+async function loadImageFromPath(imagePath: string): Promise<HTMLImageElement | null> {
+  // 浏览器环境下无法加载本地文件，直接返回 null
+  if (!isElectron) {
+    console.warn('[EyeDetector] Not in Electron environment, skipping')
+    return null
+  }
+
   const img = new Image()
   
   let src = imagePath
-  if (isElectron && imagePath.startsWith('C:')) {
+  if (imagePath.startsWith('C:')) {
     try {
       const dataUrl = await window.electronAPI.getThumbnailData(imagePath)
       if (dataUrl) {
         src = dataUrl
+      } else {
+        console.warn('[EyeDetector] getThumbnailData returned null')
+        return null
       }
     } catch (err) {
       console.warn('[EyeDetector] Failed to get thumbnail data:', err)
+      return null
     }
   }
   
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error(`Failed to load image: ${imagePath}`))
+    img.onerror = () => {
+      console.warn('[EyeDetector] Image load failed:', imagePath)
+      resolve(null)
+    }
     img.src = src
   })
 }
@@ -84,9 +110,19 @@ async function loadImageFromPath(imagePath: string): Promise<HTMLImageElement> {
 export async function detectEyeState(imagePath: string): Promise<EyeDetectionResult> {
   await loadModels()
 
-  let img: HTMLImageElement
+  let img: HTMLImageElement | null
   try {
     img = await loadImageFromPath(imagePath)
+    if (!img) {
+      return {
+        hasFace: false,
+        faceCount: 0,
+        openEyeCount: 0,
+        closedEyeCount: 0,
+        eyeStatus: 'unknown',
+        confidence: 0,
+      }
+    }
   } catch (err) {
     console.warn('[EyeDetector] Image load failed:', err)
     return {
@@ -100,8 +136,7 @@ export async function detectEyeState(imagePath: string): Promise<EyeDetectionRes
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const detection = await (faceapi as any).detectSingleFace(img).withFaceLandmarks(true)
+    const detection = await faceApi.detectSingleFace(img).withFaceLandmarks(true)
 
     if (!detection) {
       return {
