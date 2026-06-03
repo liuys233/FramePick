@@ -9,6 +9,7 @@ export interface PhotoInfo {
   totalScore?: number
   grade?: GradeKey
   detailScores?: DetailScores
+  analysis?: AnalysisResult
   manualOverride?: boolean
 }
 
@@ -22,6 +23,36 @@ export interface DetailScores {
   color: number
   eye: number
   uniqueness: number
+}
+
+export type PortraitEyeCheckStatus = 'normal' | 'one_eye_closed' | 'closed_eye' | 'no_clear_face' | 'low_confidence' | 'timeout' | 'unknown'
+
+export type EyeSideStatus = 'open' | 'closed' | 'unknown'
+
+export type EyeIssueLevel = 'none' | 'warning' | 'critical'
+
+export interface EyeSideCheck {
+  status: EyeSideStatus
+  ear?: number
+}
+
+export interface PortraitEyeCheckResult {
+  hasFace: boolean
+  faceCount: number
+  openEyeCount: number
+  closedEyeCount: number
+  eyeStatus: 'open' | 'closed' | 'unknown'
+  confidence: number
+  checkStatus: PortraitEyeCheckStatus
+  issueLevel: EyeIssueLevel
+  reviewRequired: boolean
+  summary: string
+  suggestion: string
+  issues: string[]
+  scoreImpact: number
+  detector?: 'mediapipe'
+  leftEye?: EyeSideCheck
+  rightEye?: EyeSideCheck
 }
 
 export interface GradeRule {
@@ -56,14 +87,7 @@ export interface AnalysisResult {
   sharpness?: { score: number; laplacianVariance: number }
   color?: { score: number; avgSaturation: number; colorDiversity: number }
   similarity?: number
-  eyeDetection?: {
-    hasFace: boolean
-    faceCount: number
-    openEyeCount: number
-    closedEyeCount: number
-    eyeStatus: 'open' | 'closed' | 'unknown'
-    confidence: number
-  }
+  eyeDetection?: PortraitEyeCheckResult
 }
 
 export type GradeFilter = GradeKey | 'ungraded' | null
@@ -85,6 +109,7 @@ export interface ElectronAPI {
   selectExportDir: () => Promise<string | null>
   getThumbnail: (path: string) => Promise<string | { type: string; name: string; size: number } | { error: string }>
   getThumbnailData: (thumbPath: string) => Promise<string | null>
+  getDetectionImageData: (path: string) => Promise<string | null>
   analyzePhoto: (path: string) => Promise<unknown>
   analyzeBatch: (params: { photos: Array<{ path: string }> }) => Promise<{ results: unknown[]; similarityGroups: number[][] }>
   onAnalysisProgress: (callback: (progress: { current: number; total: number }) => void) => (handler: any) => void

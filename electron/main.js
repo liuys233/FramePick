@@ -186,6 +186,20 @@ ipcMain.handle('file:thumbnailData', async (_event, thumbPath) => {
   }
 })
 
+ipcMain.handle('file:detectionImageData', async (_event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) return null
+    const data = await sharp(filePath, { failOn: 'error' })
+      .rotate()
+      .resize(960, 960, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 88 })
+      .toBuffer()
+    return `data:image/jpeg;base64,${data.toString('base64')}`
+  } catch {
+    return null
+  }
+})
+
 // ── Analysis IPC ─────────────────────────────────────────────────
 ipcMain.handle('analysis:photo', async (_event, filePath) => {
   return await analyzePhoto(filePath)
@@ -208,6 +222,24 @@ ipcMain.handle('export:copyFiles', async (_event, { files, destDir, naming, form
   const errors = []
   const overwritten = []
 
+  const convertOrCopy = async (srcPath, destPath, targetFormat) => {
+    if (targetFormat === 'original') {
+      await fs.promises.copyFile(srcPath, destPath)
+      return
+    }
+
+    const pipeline = sharp(srcPath).rotate()
+    if (targetFormat === 'jpg' || targetFormat === 'jpeg') {
+      await pipeline.jpeg({ quality: 95 }).toFile(destPath)
+    } else if (targetFormat === 'png') {
+      await pipeline.png().toFile(destPath)
+    } else if (targetFormat === 'webp') {
+      await pipeline.webp({ quality: 90 }).toFile(destPath)
+    } else {
+      await fs.promises.copyFile(srcPath, destPath)
+    }
+  }
+
   for (let i = 0; i < files.length; i++) {
     try {
       const file = files[i]
@@ -228,7 +260,7 @@ ipcMain.handle('export:copyFiles', async (_event, { files, destDir, naming, form
         overwritten.push(newName)
       }
       
-      await fs.promises.copyFile(file.path, destPath)
+      await convertOrCopy(file.path, destPath, format)
       successCount++
     } catch (err) {
       failCount++

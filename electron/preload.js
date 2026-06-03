@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getThumbnail: (filePath) => ipcRenderer.invoke('file:thumbnail', filePath),
   getThumbnailData: (thumbPath) => ipcRenderer.invoke('file:thumbnailData', thumbPath),
+  getDetectionImageData: (filePath) => ipcRenderer.invoke('file:detectionImageData', filePath),
 
   analyzePhoto: (filePath) => ipcRenderer.invoke('analysis:photo', filePath),
   analyzeBatch: (params) => ipcRenderer.invoke('analysis:batch', params),

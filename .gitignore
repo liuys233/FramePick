@@ -1,8 +1,10 @@
 node_modules/
 dist/
+.tmp/
 .env
 .env.local
 .DS_Store
 *.log
+*.ndjson
 *.lock
 presentation.html

@@ -1313,7 +1313,6 @@ body {
   cursor: pointer;
   font-size: 14px;
 }
-}
 .preview-close:hover {
   background: rgba(255,77,79,0.8);
 }

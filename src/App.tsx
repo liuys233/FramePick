@@ -74,6 +74,17 @@ function AppContent() {
     setManualGrade(prev => ({ ...prev, [photoId]: grade }))
   }, [])
 
+  const exportPhotos = useMemo(() => {
+    return wf.photos.map(photo => {
+      const grade = manualGrade[photo.id] || photo.grade
+      return grade ? { ...photo, grade, manualOverride: !!manualGrade[photo.id] } : photo
+    })
+  }, [wf.photos, manualGrade])
+
+  const hasExportablePhotos = useMemo(() => {
+    return exportPhotos.some(p => p.grade === 'selected' || p.grade === 'alternative')
+  }, [exportPhotos])
+
   useKeyboard({
     photos: displayPhotos,
     focusedIndex,
@@ -133,7 +144,7 @@ function AppContent() {
         onExportClick={() => wf.setActiveDialog('export')}
         onGradeAll={wf.handleGradeAll}
         gradeDisabled={!hasActiveScene || wf.photos.length === 0}
-        exportDisabled={wf.stats.selected + wf.stats.alternative === 0}
+        exportDisabled={!hasExportablePhotos}
       />
 
       <div className="app-body">
@@ -177,7 +188,7 @@ function AppContent() {
 
       {wf.activeDialog === 'export' && (
         <ExportDialog
-          photos={wf.photos}
+          photos={exportPhotos}
           onClose={() => wf.setActiveDialog(null)}
         />
       )}

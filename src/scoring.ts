@@ -64,19 +64,20 @@ export function computeGrade(
     uniqueness: analysis.similarity ?? 100,
   }
 
-  let eyePenalty = 0
-  let eyeBonus = 0
+  let eyeScoreImpact = 0
   
-  if (sceneId === 'portrait' && analysis.eyeDetection) {
-    const { hasFace, openEyeCount, eyeStatus } = analysis.eyeDetection
-    
-    if (hasFace) {
+  if ((sceneId === 'portrait' || sceneId === 'street') && analysis.eyeDetection) {
+    const { hasFace, openEyeCount, eyeStatus, scoreImpact } = analysis.eyeDetection
+
+    if (typeof scoreImpact === 'number') {
+      eyeScoreImpact = scoreImpact
+    } else if (hasFace) {
       if (eyeStatus === 'closed') {
-        eyePenalty = 15
+        eyeScoreImpact = -15
       } else if (openEyeCount === 2) {
-        eyeBonus = 10
+        eyeScoreImpact = 10
       } else if (openEyeCount === 1) {
-        eyeBonus = 5
+        eyeScoreImpact = 5
       }
     }
   }
@@ -91,7 +92,7 @@ export function computeGrade(
     scores.uniqueness * w.similarity
   )
 
-  total = clamp(total - eyePenalty + eyeBonus)
+  total = clamp(total + eyeScoreImpact)
 
   const grades = customRules?.grades || DEFAULT_GRADES
   let grade: GradeKey = 'reject'

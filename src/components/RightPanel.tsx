@@ -1,6 +1,7 @@
 import { Button, Progress, Typography, Divider, Empty } from 'antd'
 import { EyeOutlined, ArrowLeftOutlined, ArrowRightOutlined, ZoomInOutlined } from '@ant-design/icons'
 import { GRADE_LABELS, GRADE_COLORS } from '../scoring'
+import { useThumbnails } from '../hooks/useThumbnails'
 import type { PhotoInfo, GradeKey } from '../types'
 
 const { Text } = Typography
@@ -21,9 +22,17 @@ const GRADE_OPTIONS: { key: GradeKey; label: string; color: string; shortcut: st
   { key: 'reject', label: '不推荐', color: '#ff4d4f', shortcut: '3' },
 ]
 
+function getEyeSideLabel(status?: 'open' | 'closed' | 'unknown') {
+  if (status === 'open') return '睁开'
+  if (status === 'closed') return '闭合'
+  return '未知'
+}
+
 export default function RightPanel({
   photo, allPhotos, index, onNavigate, getDisplayGrade, onManualGrade, onPreview,
 }: RightPanelProps) {
+  const thumbnails = useThumbnails(photo ? [photo] : [], { enabled: !!photo })
+
   if (!photo) {
     return (
       <aside className="right-panel">
@@ -38,6 +47,16 @@ export default function RightPanel({
   const grade = getDisplayGrade(photo)
   const scores = photo.detailScores
   const totalScore = photo.totalScore ?? 0
+  const thumb = thumbnails[photo.id] || photo.thumbnail
+  const supportsEyeCheck = photo.scene === 'portrait' || photo.scene === 'street'
+  const eyeDetection = supportsEyeCheck ? photo.analysis?.eyeDetection : undefined
+  const eyeStatusMeta = eyeDetection
+    ? eyeDetection.issueLevel === 'critical'
+      ? { label: eyeDetection.summary || '存在眼部风险', color: '#ff4d4f' }
+      : eyeDetection.issueLevel === 'warning'
+        ? { label: eyeDetection.summary || '建议复核', color: '#faad14' }
+        : { label: eyeDetection.summary || '眼部状态正常', color: '#52c41a' }
+    : null
 
   const barMeta = [
     { key: 'exposure' as const, label: '曝光', color: '#4096ff' },
@@ -51,8 +70,8 @@ export default function RightPanel({
     <aside className="right-panel">
       <div className="detail-header" onClick={onPreview} style={{ cursor: 'pointer' }}>
         <div className="detail-thumb">
-          {photo.thumbnail ? (
-            <img src={photo.thumbnail} alt={photo.name} />
+          {thumb ? (
+            <img src={thumb} alt={photo.name} />
           ) : (
             <div className="detail-thumb-placeholder">
               <EyeOutlined style={{ fontSize: 24, color: '#888' }} />
@@ -144,6 +163,54 @@ export default function RightPanel({
               )
             })}
           </div>
+        </div>
+      )}
+
+      {eyeDetection && eyeStatusMeta && (
+        <div style={{ marginBottom: 12 }}>
+          <Text strong style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 8 }}>人像眼部状态检查</Text>
+          <div style={{ padding: 10, borderRadius: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>检查结论</Text>
+              <Text strong style={{ fontSize: 12, color: eyeStatusMeta.color }}>{eyeStatusMeta.label}</Text>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>主脸数量</Text>
+                <Text style={{ fontSize: 12 }}>{eyeDetection.hasFace ? `${eyeDetection.faceCount} 张` : '未检测到'}</Text>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>置信度</Text>
+                <Text style={{ fontSize: 12 }}>{Math.round(eyeDetection.confidence * 100)}%</Text>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>左眼</Text>
+                <Text style={{ fontSize: 12 }}>{getEyeSideLabel(eyeDetection.leftEye?.status)}</Text>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>右眼</Text>
+                <Text style={{ fontSize: 12 }}>{getEyeSideLabel(eyeDetection.rightEye?.status)}</Text>
+              </div>
+              {eyeDetection.detector && (
+                <div>
+                  <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>检测器</Text>
+                  <Text style={{ fontSize: 12 }}>MediaPipe</Text>
+                </div>
+              )}
+            </div>
+            {eyeDetection.suggestion && (
+              <Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 8, lineHeight: 1.5 }}>
+                {eyeDetection.suggestion}
+              </Text>
+            )}
+          </div>
+        </div>
+      )}
+
+      {supportsEyeCheck && !eyeDetection && (
+        <div style={{ marginBottom: 12 }}>
+          <Text strong style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 8 }}>人像眼部状态检查</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>尚未执行眼部状态检查</Text>
         </div>
       )}
 
